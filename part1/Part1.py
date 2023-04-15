@@ -70,8 +70,7 @@ def createUDPConnection():
 
 # Need to fill 12 bytes of data before the message as the header
 # First 4 bytes is the len of the message
-def createHeaderandPackagePayload(payload, secret, step, digits):
-    payloadLen; 
+def createHeaderandPackagePayload(payload, secret, step, digits): 
     if len(payload) % 4 == 0 :
         payloadLen = len(payload)
     else : 
