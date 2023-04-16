@@ -79,7 +79,7 @@ def p1_stage_b(receivedBuffer, socket_udp):
         if receivedBuffer[0] == i:
             i += 1
 
-    recData = socket_udp.recvfrom(HEADERSIZE + 8)
+    recData, recAddr = socket_udp.recvfrom(HEADERSIZE + 8)
     recBuffer = struct.unpack("!II", recData[HEADERSIZE:])
     tcp_port = recBuffer[0]
     secretB = recBuffer[1]
