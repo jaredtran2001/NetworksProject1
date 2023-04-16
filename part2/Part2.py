@@ -50,9 +50,11 @@ def p2StageA(s, client_data, client_addr):
     payload = struct.pack('!IIHHIIII', SERVERPACKAGESIZE, 0, STEP1, DIGITS, num, len, udp_port, secretA)
     print("Responding with UDP packet for Stage A...")
     s.sendto(payload, client_addr)
-    p2StageB(s, client_addr, num, len, secretA)
+    p2StageB(client_addr, udp_port, num, len, secretA)
 
-def p2StageB(s, client_addr, num, len, secretA):
+def p2StageB(client_addr, udp_port, num, len, secretA):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind((SERVER_ADDRESS, udp_port))
     print("Receiving", num, "packets for Stage B...")
     num_recv = 0
     while num_recv < num:

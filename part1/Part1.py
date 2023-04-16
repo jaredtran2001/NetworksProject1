@@ -54,7 +54,7 @@ def p1StageB(receivedBuffer, socket_udp):
         #add the header to the payload
         sendData = createHeaderandPackagePayload(payload, secret, STEP1, DIGITS)
         #send data to server
-        socket_udp.sendto(sendData, (SERVER_ADDRESS, PORT))
+        socket_udp.sendto(sendData, (SERVER_ADDRESS, udp_port))
         receiveData, server_address = socket_udp.recvfrom(HEADERSIZE + SERVERACKSIZE)
         receivedBuffer = struct.unpack("!I", receiveData[HEADERSIZE:])
         if receivedBuffer[0] == i:
