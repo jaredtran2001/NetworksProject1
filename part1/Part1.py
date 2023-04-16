@@ -2,7 +2,8 @@ import socket
 import struct
 
 # define the server address and port number
-SERVER_ADDRESS = 'attu2.cs.washington.edu'
+#SERVER_ADDRESS = 'attu2.cs.washington.edu'
+SERVER_ADDRESS = '127.0.0.1'
 PORT = 12235
 STEP1 = 1
 STEP2 = 2
@@ -20,12 +21,16 @@ def p1StageA():
     message = b'hello world'
     # send data to the server
     sendData = createHeaderandPackagePayload(message, 0, STEP1, DIGITS)
+    print("Sending for Stage A to...", sendData)
     socket_udp.sendto(sendData, (SERVER_ADDRESS, PORT))
+    print("Sent")
 
     # Step a2
     # receive data from the server
+    print("Receiving packet from server...")
     receiveData, server_address = socket_udp.recvfrom(HEADERSIZE + SERVERPACKAGESIZE)
     # Print out message
+    print("Received")
     receivedBuffer = struct.unpack("!III I", receiveData[HEADERSIZE:])
     secret = receivedBuffer[3]
     print("Stage A secret: " + str(secret))
@@ -65,7 +70,7 @@ def p1StageB(receivedBuffer, socket_udp):
 def createUDPConnection():
     SERVERADDRESS = socket.gethostbyname('attu2.cs.washington.edu')
     socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    socket_udp.connect((SERVERADDRESS, PORT))
+    #socket_udp.connect((SERVERADDRESS, PORT))
     return socket_udp
 
 # Need to fill 12 bytes of data before the message as the header
