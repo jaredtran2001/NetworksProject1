@@ -21,7 +21,7 @@ def p1StageA():
     message = b'hello world'
     # send data to the server
     sendData = createHeaderandPackagePayload(message, 0, STEP1, DIGITS)
-    print("Sending for Stage A to...", sendData)
+    print("Sending packet for Stage A...")
     socket_udp.sendto(sendData, (SERVER_ADDRESS, PORT))
     print("Sent")
 
@@ -45,6 +45,7 @@ def p1StageB(receivedBuffer, socket_udp):
     udp_port = receivedBuffer[2]
     secret = receivedBuffer[3]
     i = 0
+    print("Sending", num, "packets for Stage B...")
     while i < num :
         #create the payload by creating a package that has the first four bytes as the id and then an empty for the rest of the payload
         payload = bytearray(len + 4)
@@ -58,8 +59,9 @@ def p1StageB(receivedBuffer, socket_udp):
         receivedBuffer = struct.unpack("!I", receiveData[HEADERSIZE:])
         if receivedBuffer[0] == i:
             i += 1
-    
-    recData = socket_udp.recvfrom(HEADERSIZE + 8)
+    print("Sent all", num, "packets for Stage B.")
+
+    recData, recAddr = socket_udp.recvfrom(HEADERSIZE + 8)
     recBuffer = struct.unpack("!II", recData[HEADERSIZE:])
     tcp_port = recBuffer[0]
     secretB = recBuffer[1]
