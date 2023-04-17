@@ -1,5 +1,6 @@
 import socket
 import struct
+import sys
 
 SERVER_ADDRESS = 'attu2.cs.washington.edu'
 LOCALHOST = '127.0.0.1'
@@ -11,10 +12,12 @@ HEADER_SIZE = 12
 SERVER_PACKAGE_SIZE = 16
 SERVER_ACK_SIZE_STAGE_B = 4
 SERVER_ACK_SIZE_STAGE_C = 13
+SERVER_ACK_SIZE_STAGE_D = 4
 
 
 def main():
     p1_stage_a()
+    sys.exit("Part 1 Complete.")
 
 
 def p1_stage_a():
@@ -114,7 +117,54 @@ def p1_stage_c(recBuffer, socket_tcp):
           \n\t\tsecretC: {secretC} \
           \n\t\tc: {c}")
     print("STAGE c complete.\n\n")
-    exit(1)
+    p1_stage_d(recBuffer, socket_tcp, tcp_port)
+
+
+def p1_stage_d(recBuffer, socket_tcp, tcp_port):
+    # Step d1. The clients sends num2 payloads, each payload of length len2,
+    # and each payload containing all bytes set to the character c.
+    num2 = recBuffer[0]
+    len2 = recBuffer[1]
+    secretC = recBuffer[2]
+    c = recBuffer[3]
+    socket_tcp.settimeout(3)
+
+    i = 0
+    while i < num2:
+        payload = c.decode() * len2
+        payload = payload.encode()
+        int_bytes = struct.pack('!%ds' % len2, payload)
+
+        # add the header to the payload
+        sendData = package_header_and_payload(
+            int_bytes, secretC, STEP1, DIGITS)
+
+        # send data to server
+        if i == 0:
+            print(f"\tPacket being sent to server {num2} times: {sendData}\n")
+        print(
+            f"\tSending TCP packet to {SERVER_ADDRESS} on port {tcp_port}...")
+        socket_tcp.sendto(sendData, (SERVER_ADDRESS, tcp_port))
+        i += 1
+
+    # server seems to respond first with 3 bytes of character c
+    # then with header + payload containing secretD
+    # iff it received num2 correct payloads first
+    for i in range(2):
+        try:
+            print(f"\tReceving TCP packet from"
+                  + f" {SERVER_ADDRESS} on port {tcp_port}...")
+            recData = socket_tcp.recv(HEADER_SIZE + SERVER_ACK_SIZE_STAGE_D)
+            print(f"\tPacket contents: {recData}")
+            if recData == b'':
+                break
+        except socket.timeout:
+            print(f"\tRetrying... \n")
+            continue
+    recBuffer = struct.unpack("!I", recData[HEADER_SIZE:])
+    print(f"\tsecretD is: {recBuffer[0]}")
+    print("STAGE d complete.\n\n")
+    socket_tcp.close()
 
 
 def create_tcp_socket(addr, port):
