@@ -10,6 +10,7 @@ DIGITS = 887
 HEADERSIZE = 12
 SERVERPACKAGESIZE = 16
 SERVERACKSIZE = 4
+tcp_port = None
 
 
 def main():
@@ -99,6 +100,10 @@ def create_udp_socket():
     # socket_udp.connect((SERVERADDRESS, PORT))
     return socket_udp
 
+def create_tcp_socket(): 
+    """"Creates TCP socket and gets addr info."""
+    socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket_tcp.bind(("attu2.cs.washington.edu", TCP_PORT))
 
 def package_header_and_payload(payload, secret, step, digits):
     """Creates the 12-byte header and padded payload packet."""
