@@ -49,6 +49,7 @@ def p1_stage_a():
 
 def p1_stage_b(receivedBuffer, socket_udp):
     print("\tSTAGE a complete.\n\tStarting STAGE b...\n")
+    socket_udp.settimeout(0.5)
     num = receivedBuffer[0]
     len = receivedBuffer[1]
     udp_port = receivedBuffer[2]
@@ -71,18 +72,24 @@ def p1_stage_b(receivedBuffer, socket_udp):
             f"\tSending UDP packet to {SERVER_ADDRESS} on port {udp_port}...")
         socket_udp.sendto(sendData, (SERVER_ADDRESS, udp_port))
 
-        # receive data from server
-        print(f"\tReceiving packet from {SERVER_ADDRESS}... ")
-        receiveData, server_address = socket_udp.recvfrom(
-            HEADERSIZE + SERVERACKSIZE)
-        receivedBuffer = struct.unpack("!I", receiveData[HEADERSIZE:])
-        if receivedBuffer[0] == i:
-            i += 1
+        try :
+             # receive data from server
+            print(f"\tReceiving packet from {SERVER_ADDRESS}... \n")
+            receiveData, server_address = socket_udp.recvfrom(
+                HEADERSIZE + SERVERACKSIZE)
+            receivedBuffer = struct.unpack("!I", receiveData[HEADERSIZE:])
+            if receivedBuffer[0] == i:
+                i += 1
+        except socket.timeout:
+            print(f"\tRetrying... \n")
+            continue
 
     recData, recAddr = socket_udp.recvfrom(HEADERSIZE + 8)
     recBuffer = struct.unpack("!II", recData[HEADERSIZE:])
     tcp_port = recBuffer[0]
     secretB = recBuffer[1]
+    print(f"\t\TCP port from stage b is: {tcp_port}")
+    print(f"\tSecret from stage b is: {secretB}\n")
 
 
 def create_udp_socket():
