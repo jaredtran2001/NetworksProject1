@@ -19,7 +19,7 @@ def main():
 def p1_stage_a():
     # create udp socket
     socket_udp = create_udp_socket()
-    payload = b'hello world'
+    payload = b'hello world\0'
 
     # package and send packet to the server
     sendData = package_header_and_payload(payload, 0, STEP1, DIGITS)
@@ -95,7 +95,7 @@ def create_udp_socket():
 
 def package_header_and_payload(payload, secret, step, digits):
     """Creates the 12-byte header and padded payload packet."""
-    payload_len = pad_length(payload)
+    payload_len = len(payload)
     header = struct.pack("!IIHH", payload_len, secret, step, digits)
     return header + payload.ljust(payload_len, b'\0')
 
