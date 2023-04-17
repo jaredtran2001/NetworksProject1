@@ -7,10 +7,10 @@ PORT = 12235
 STEP1 = 1
 STEP2 = 2
 DIGITS = 887
-HEADERSIZE = 12
-SERVERPACKAGESIZE = 16
-SERVERACKSIZE = 4
-tcp_port = None
+HEADER_SIZE = 12
+SERVER_PACKAGE_SIZE = 16
+SERVER_ACK_SIZE_STAGE_B = 4
+SERVER_ACK_SIZE_STAGE_C = 13
 
 
 def main():
@@ -18,6 +18,7 @@ def main():
 
 
 def p1_stage_a():
+    print("\nStarting Stage a")
     # create udp socket
     socket_udp = create_udp_socket()
     payload = b'hello world\0'
@@ -26,13 +27,12 @@ def p1_stage_a():
     sendData = package_header_and_payload(payload, 0, STEP1, DIGITS)
     print(f"\tSending UDP packet to {SERVER_ADDRESS} on port {PORT}...")
     socket_udp.sendto(sendData, (SERVER_ADDRESS, PORT))
-    print("\tSent")
 
     # receive packet from the server
-    print(f"\tReceiving packet from {SERVER_ADDRESS}... ")
+    print(f"\tReceiving UDP packet from {SERVER_ADDRESS}... ")
     receiveData, server_address = socket_udp.recvfrom(
-        HEADERSIZE + SERVERPACKAGESIZE)
-    receivedBuffer = struct.unpack("!IIII", receiveData[HEADERSIZE:])
+        HEADER_SIZE + SERVER_PACKAGE_SIZE)
+    receivedBuffer = struct.unpack("!IIII", receiveData[HEADER_SIZE:])
     print("\tPacket contents: ", receivedBuffer[:])
     num = receivedBuffer[0]
     length = receivedBuffer[1]
@@ -42,14 +42,12 @@ def p1_stage_a():
           \n\t\tlen: {length} \
           \n\t\tudp_port: {udp_port} \
           \n\t\tsecretA: {secret_a}")
-
+    print("STAGE a complete.\n\nStarting STAGE b...\n")
     # pass integers to stage b
     p1_stage_b(receivedBuffer, socket_udp)
-    socket_udp.close()
 
 
 def p1_stage_b(receivedBuffer, socket_udp):
-    print("\tSTAGE a complete.\n\tStarting STAGE b...\n")
     socket_udp.settimeout(0.5)
     num = receivedBuffer[0]
     len = receivedBuffer[1]
@@ -62,7 +60,7 @@ def p1_stage_b(receivedBuffer, socket_udp):
         payload = bytearray(len + 4)
         int_bytes = struct.pack('!I', i)
         payload[0:4] = int_bytes[0:4]
-        print(f"\tpayload {i}: {payload}\n")
+        # print(f"\tpayload {i}: {payload}\n")
 
         # add the header to the payload
         sendData = package_header_and_payload(
@@ -73,24 +71,58 @@ def p1_stage_b(receivedBuffer, socket_udp):
             f"\tSending UDP packet to {SERVER_ADDRESS} on port {udp_port}...")
         socket_udp.sendto(sendData, (SERVER_ADDRESS, udp_port))
 
-        try :
-             # receive data from server
-            print(f"\tReceiving packet from {SERVER_ADDRESS}... \n")
+        try:
+            # receive data from server
+            print(f"\tReceiving packet {i} from {SERVER_ADDRESS}... \n")
             receiveData, server_address = socket_udp.recvfrom(
-                HEADERSIZE + SERVERACKSIZE)
-            receivedBuffer = struct.unpack("!I", receiveData[HEADERSIZE:])
+                HEADER_SIZE + SERVER_ACK_SIZE_STAGE_B)
+            receivedBuffer = struct.unpack("!I", receiveData[HEADER_SIZE:])
             if receivedBuffer[0] == i:
                 i += 1
         except socket.timeout:
             print(f"\tRetrying... \n")
             continue
 
-    recData, recAddr = socket_udp.recvfrom(HEADERSIZE + 8)
-    recBuffer = struct.unpack("!II", recData[HEADERSIZE:])
+    recData, recAddr = socket_udp.recvfrom(HEADER_SIZE + 8)
+    recBuffer = struct.unpack("!II", recData[HEADER_SIZE:])
     tcp_port = recBuffer[0]
     secretB = recBuffer[1]
-    print(f"\t\TCP port from stage b is: {tcp_port}")
-    print(f"\tSecret from stage b is: {secretB}\n")
+    print(f"\tTCP port from STAGE b is: {tcp_port}")
+    print(f"\tSecret from STAGE b is: {secretB}\n")
+    socket_tcp = create_tcp_socket(SERVER_ADDRESS, tcp_port)
+    socket_udp.close()
+    print("STAGE b complete.\n\nStarting STAGE c...\n")
+    p1_stage_c(recBuffer, socket_tcp)
+
+
+def p1_stage_c(recBuffer, socket_tcp):
+    tcp_port = recBuffer[0]
+    secretB = recBuffer[1]
+
+    # receive data from the server
+    print(
+        f"\tReceving TCP packet from {SERVER_ADDRESS} on port {tcp_port}...")
+    recData = socket_tcp.recv(HEADER_SIZE + SERVER_ACK_SIZE_STAGE_C)
+    recBuffer = struct.unpack("!IIIc", recData[HEADER_SIZE:])
+    print(f"\tPacket contents: {recBuffer[:]}")
+    num2 = recBuffer[0]
+    len2 = recBuffer[1]
+    secretC = recBuffer[2]
+    c = recBuffer[3]
+    print(f"\t\tnum2: {num2} \
+          \n\t\tlen2: {len2} \
+          \n\t\tsecretC: {secretC} \
+          \n\t\tc: {c}")
+    print("STAGE c complete.\n\n")
+    exit(1)
+
+
+def create_tcp_socket(addr, port):
+    """Creates TCP socket and gets addr info."""
+    SERVERADDRESS = socket.gethostbyname('attu2.cs.washington.edu')
+    socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    socket_tcp.connect((addr, port))
+    return socket_tcp
 
 
 def create_udp_socket():
@@ -100,10 +132,6 @@ def create_udp_socket():
     # socket_udp.connect((SERVERADDRESS, PORT))
     return socket_udp
 
-def create_tcp_socket(): 
-    """"Creates TCP socket and gets addr info."""
-    socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    socket_tcp.bind(("attu2.cs.washington.edu", TCP_PORT))
 
 def package_header_and_payload(payload, secret, step, digits):
     """Creates the 12-byte header and padded payload packet."""
