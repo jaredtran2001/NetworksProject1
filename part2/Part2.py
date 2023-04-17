@@ -140,14 +140,18 @@ def p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr):
             print("\tIncorrect header: ", header_data)
             return False
         # verify payload data that all are of the character c
-        client_payload = client_data[HEADERSIZE:HEADERSIZE + len2]
+        client_payload = client_data[HEADERSIZE:HEADERSIZE + len2].decode('utf-8')
+        # for i in client_payload:
+        #     print(f"\t {i} value in client payload")
         if not all(i == 'c' for i in client_payload):
             print("\tIncorrect payload: ", client_payload)
             return False
         num_recv += 1
+        print(f"\t got {num_recv} out of {num2}")
 
     # step d2
     secretD = random.randint(1, 100)
+    print(f"\t sending final secret to client \n")
     d_payload = struct.pack('!IIHHI', 4, secretC, STEP2, DIGITS, secretD)
     client_conn.sendto(d_payload, client_addr)
     print("\tSTAGE d complete.")

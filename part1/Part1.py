@@ -2,7 +2,7 @@ import socket
 import struct
 import sys
 
-SERVER_ADDRESS = 'attu2.cs.washington.edu'
+SERVER_ADDRESS = '127.0.0.1'
 PORT = 12235
 STEP1 = 1
 DIGITS = 887
