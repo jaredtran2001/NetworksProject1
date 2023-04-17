@@ -97,7 +97,7 @@ def package_header_and_payload(payload, secret, step, digits):
     """Creates the 12-byte header and padded payload packet."""
     payload_len = len(payload)
     header = struct.pack("!IIHH", payload_len, secret, step, digits)
-    return header + payload.ljust(payload_len, b'\0')
+    return header + payload.ljust(pad_length(payload), b'\0')
 
 
 def pad_length(payload):
