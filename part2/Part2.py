@@ -88,7 +88,7 @@ def p2_stage_b(client_addr, udp_port, num, len, secretA):
             num_recv += 1
         else:
             ack_packet = struct.pack('!IIHHI', 4, secretA, STEP2, DIGITS, num + 1)
-        sock_b.sendto(ack_packet, client_addr)
+        sock_b.sendto(ack_packet, client_addr2)
         
     print("\tReceived all", num, "packets. Sending packet for steb b2...")
     # step b2
@@ -98,7 +98,7 @@ def p2_stage_b(client_addr, udp_port, num, len, secretA):
         tcp_port = random.randint(4096, 65535)
     secretB = random.randint(1, 100)
     payload = struct.pack('!IIHHII', 8, secretA, STEP2, DIGITS, tcp_port, secretB)
-    sock_b.sendto(payload, client_addr)
+    sock_b.sendto(payload, client_addr2)
     sock_b.close()
     print("\tSTAGE b complete.")
     return p2_stage_c(tcp_port, secretB)
