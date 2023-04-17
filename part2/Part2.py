@@ -1,11 +1,10 @@
-from part1.Part1 import *
 import socket
 import struct
 import threading
 import random
 
 BUFFERSIZE = 1024
-#SERVER_ADDRESS = 'attu2.cs.washington.edu'
+TIMEOUT = 3
 SERVER_ADDRESS = '127.0.0.1'
 PORT = 12235
 STEP1 = 1
@@ -24,6 +23,7 @@ def main():
         print("\tReceived message from client")
         thread = threading.Thread(target = p2_stage_a, args = (client_data, client_addr))
         thread.start()
+        thread.join()
     s.close()
 
 def p2_stage_a(client_data, client_addr):
@@ -45,35 +45,41 @@ def p2_stage_a(client_data, client_addr):
     num = random.randint(1, 50)
     len = random.randint(1, 50)
     udp_port = random.randint(4096, 65535)
+    # test if udp_port already in use
+    while not check_port(udp_port, 'udp'):
+        udp_port = random.randint(4096, 65535)
     secretA = random.randint(1, 100)
-    payload = struct.pack('!IIHHIIII', SERVERPACKAGESIZE, 0, STEP1, DIGITS, num, len, udp_port, secretA)
+    payload = struct.pack('!IIHHIIII', SERVERPACKAGESIZE, 0, STEP2, DIGITS, num, len, udp_port, secretA)
     print("\tResponding with UDP packet for Stage A...")
     sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_a.sendto(payload, client_addr)
     sock_a.close()
     print("\tSTAGE a complete.")
-    p2_stage_b(client_addr, udp_port, num, len, secretA)
+    if not p2_stage_b(client_addr, udp_port, num, len, secretA):
+        return
 
 def p2_stage_b(client_addr, udp_port, num, len, secretA):
     print("\tStarting STAGE b...")
     sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_b.bind((SERVER_ADDRESS, udp_port))
+    sock_b.settimeout(TIMEOUT)
 
     print("\tReceiving", num, "packets for Stage B...")
     num_recv = 0
-    if (len + 4) % 4 == 0:
-        byte_aligned_len = len + 4
-    else:
-        byte_aligned_len = (4 - (len + 4) % 4) + (len + 4)
-
     while num_recv < num:
-        client_data, client_addr2 = sock_b.recvfrom(BUFFERSIZE)
+        try:
+            client_data, client_addr2 = sock_b.recvfrom(BUFFERSIZE)
+        except socket.timeout:
+            print("Timeout error.")
+            sock_b.close()
+            return False
         header_data = client_data[:HEADERSIZE]
         header_data = struct.unpack('!IIHH', header_data)
         # verify header data
-        if header_data != (byte_aligned_len, secretA, STEP1, DIGITS):
+        if header_data != (len + 4, secretA, STEP1, DIGITS):
             print("\tIncorrect header: ", header_data)
-            return
+            sock_b.close()
+            return False
         # get packet_id
         client_payload = struct.unpack('!II', client_data[HEADERSIZE:HEADERSIZE + 8])
         # randomly decide whether to send ack, respond with incorrect packet_id if not ack
@@ -87,12 +93,15 @@ def p2_stage_b(client_addr, udp_port, num, len, secretA):
     print("\tReceived all", num, "packets. Sending packet for steb b2...")
     # step b2
     tcp_port = random.randint(4096, 65535)
+    # test if tcp_port already in use
+    while not check_port(tcp_port, 'tcp'):
+        tcp_port = random.randint(4096, 65535)
     secretB = random.randint(1, 100)
     payload = struct.pack('!IIHHII', 8, secretA, STEP2, DIGITS, tcp_port, secretB)
     sock_b.sendto(payload, client_addr)
     sock_b.close()
     print("\tSTAGE b complete.")
-    p2_stage_c(tcp_port, secretB)
+    return p2_stage_c(tcp_port, secretB)
 
 def p2_stage_c(tcp_port, secretB):
     print("\tStarting STAGE c...")
@@ -105,40 +114,57 @@ def p2_stage_c(tcp_port, secretB):
     secretC = random.randint(1, 100)
     char_c = 'c'
     tcp_payload = struct.pack('!IIIc', num2, len2, secretC, char_c.encode('UTF-8'))
-    tcp_packet = package_header_and_payload(tcp_payload, secretB, STEP2, DIGITS)
-    sock_c.sendto(tcp_packet, client_addr)
+    tcp_header = struct.pack('!IIHH', len(tcp_payload), secretB, STEP2, DIGITS)
+    tcp_packet = tcp_header + tcp_payload.ljust(4 - len(char_c.encode('UTF-8')) + len(tcp_payload), b'\0')
+    client_conn.sendto(tcp_packet, client_addr)
     print("\tSTAGE c complete.")
-    p2_stage_d(client_conn, num2, secretC, len2, client_addr)
+    stage_d_status = p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr)
+    client_conn.close()
     sock_c.close()
+    return stage_d_status
 
-def p2_stage_d(client_conn, num2, secretC, len2, client_addr):
-    print("\tStarting STAGE d...")
-    if len2 % 4 == 0:
-        byte_aligned_len = len2
-    else:
-        byte_aligned_len = (4 - len2 % 4) + len2
-    
+def p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr):
+    print("\tStarting STAGE d...")  
+    sock_c.settimeout(TIMEOUT)
     num_recv = 0
     while num_recv < num2:
-        client_data = client_conn.recv(BUFFERSIZE)
+        try:
+            client_data = client_conn.recv(BUFFERSIZE)
+        except socket.timeout:
+            print("Timeout error.")
+            return False
         header_data = client_data[:HEADERSIZE]
         header_data = struct.unpack('!IIHH', header_data)
         # verify header data
-        if header_data != (byte_aligned_len, secretC, STEP1, DIGITS):
+        if header_data != (len2, secretC, STEP1, DIGITS):
             print("\tIncorrect header: ", header_data)
-            return
+            return False
         # verify payload data that all are of the character c
         client_payload = client_data[HEADERSIZE:HEADERSIZE + len2]
         if not all(i == 'c' for i in client_payload):
             print("\tIncorrect payload: ", client_payload)
-            return
+            return False
         num_recv += 1
 
     # step d2
     secretD = random.randint(1, 100)
-    d_payload = struct.pack('!IIHHI', 4, secretD, STEP2, DIGITS, secretD)
+    d_payload = struct.pack('!IIHHI', 4, secretC, STEP2, DIGITS, secretD)
     client_conn.sendto(d_payload, client_addr)
     print("\tSTAGE d complete.")
+    return True
+
+def check_port(port_num, type):
+    if type == 'udp':
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    elif type == 'tcp':
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind((SERVER_ADDRESS, port_num))
+    except:
+        s.close()
+        return False
+    s.close()
+    return True
 
 
 if __name__ == '__main__':
