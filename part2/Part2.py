@@ -2,6 +2,7 @@ import socket
 import struct
 import threading
 import random
+import string
 
 BUFFERSIZE = 1024
 TIMEOUT = 3
@@ -13,6 +14,7 @@ DIGITS = 887
 HEADERSIZE = 12
 SERVERPACKAGESIZE = 16
 SERVERACKSIZE = 4
+SERVER_ACK_SIZE_STAGE_D = 4
 
 def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -112,18 +114,18 @@ def p2_stage_c(tcp_port, secretB):
     num2 = random.randint(1, 50)
     len2 = random.randint(1, 50)
     secretC = random.randint(1, 100)
-    char_c = 'c'
+    char_c = random.choice(string.ascii_letters)
     tcp_payload = struct.pack('!IIIc', num2, len2, secretC, char_c.encode('UTF-8'))
     tcp_header = struct.pack('!IIHH', len(tcp_payload), secretB, STEP2, DIGITS)
     tcp_packet = tcp_header + tcp_payload.ljust(4 - len(char_c.encode('UTF-8')) + len(tcp_payload), b'\0')
     client_conn.sendto(tcp_packet, client_addr)
     print("\tSTAGE c complete.")
-    stage_d_status = p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr)
+    stage_d_status = p2_stage_d(sock_c, client_conn, num2, secretC, len2, char_c, client_addr)
     client_conn.close()
     sock_c.close()
     return stage_d_status
 
-def p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr):
+def p2_stage_d(sock_c, client_conn, num2, secretC, len2, char_c, client_addr):
     print("\tStarting STAGE d...")  
     sock_c.settimeout(TIMEOUT)
     num_recv = 0
@@ -143,7 +145,7 @@ def p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr):
         client_payload = client_data[HEADERSIZE:HEADERSIZE + len2].decode('utf-8')
         # for i in client_payload:
         #     print(f"\t {i} value in client payload")
-        if not all(i == 'c' for i in client_payload):
+        if not all(i == char_c for i in client_payload):
             print("\tIncorrect payload: ", client_payload)
             return False
         num_recv += 1
@@ -152,7 +154,7 @@ def p2_stage_d(sock_c, client_conn, num2, secretC, len2, client_addr):
     # step d2
     secretD = random.randint(1, 100)
     print(f"\t sending final secret to client \n")
-    d_payload = struct.pack('!IIHHI', 4, secretC, STEP2, DIGITS, secretD)
+    d_payload = struct.pack('!IIHHI', SERVER_ACK_SIZE_STAGE_D, secretC, STEP2, DIGITS, secretD)
     client_conn.sendto(d_payload, client_addr)
     print("\tSTAGE d complete.")
     return True
