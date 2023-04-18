@@ -129,9 +129,12 @@ def p2_stage_d(sock_c, client_conn, num2, secretC, len2, char_c, client_addr):
     print("\tStarting STAGE d...")  
     sock_c.settimeout(TIMEOUT)
     num_recv = 0
+    byte_aligned_len = HEADERSIZE + len2
+    if byte_aligned_len % 4 != 0:
+        byte_aligned_len += (4 - byte_aligned_len % 4)
     while num_recv < num2:
         try:
-            client_data = client_conn.recv(BUFFERSIZE)
+            client_data = client_conn.recv(byte_aligned_len)
         except socket.timeout:
             print("Timeout error.")
             return False

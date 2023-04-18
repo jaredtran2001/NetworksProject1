@@ -143,8 +143,7 @@ def p1_stage_d(recv_buf, sock, tcp_port) -> int:
 
         # add the header to the payload
         send_data = package_header_and_payload(
-            char_bytes, secret_c, STEP1, DIGITS)
-
+            char_bytes, secret_c, STEP1, DIGITS)    
         # send data to server
         if i == 0:
             print(f"\tPacket being sent to server {num2} times: {send_data}\n")
@@ -162,7 +161,7 @@ def p1_stage_d(recv_buf, sock, tcp_port) -> int:
                   + f" {SERVER_ADDRESS} on port {tcp_port}...")
             recv_data = sock.recv(HEADER_SIZE + SERVER_ACK_SIZE_STAGE_D)
             print(f"\tPacket contents: {recv_data}")
-            if recv_data == b'':
+            if recv_data == b'' or len(recv_data) > 3:
                 break
         except socket.timeout:
             print(f"\tRetrying... \n")
