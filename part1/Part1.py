@@ -2,7 +2,7 @@ import socket
 import struct
 import sys
 
-SERVER_ADDRESS = '127.0.0.1'
+SERVER_ADDRESS = None
 PORT = 12235
 STEP1 = 1
 DIGITS = 887
@@ -14,6 +14,12 @@ SERVER_ACK_SIZE_STAGE_D = 4
 
 
 def main():
+    if(len(sys.argv) != 2):
+        print("Need to provide a Server Address")
+        sys.exit()
+    else :
+        global SERVER_ADDRESS
+        SERVER_ADDRESS = sys.argv[1]
     stage_a_res, secret_a = p1_stage_a()
     stage_b_res, secret_b, tcp_port = p1_stage_b(stage_a_res)
     stage_c_res, secret_c, socket_tcp, tcp_port = p1_stage_c(
