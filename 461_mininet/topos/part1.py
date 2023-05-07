@@ -12,7 +12,7 @@ class part1_topo(Topo):
         #switch1 = self.addSwitch('switchname')
         #host1 = self.addHost('hostname')
         #self.addLink(hostname,switchname)
-        switch1 = self.addSwitc#h('s1')
+        switch1 = self.addSwitch('s1')
         host1 = self.addHost('h1')
         host2 = self.addHost('h2')
         host3 = self.addHost('h3')

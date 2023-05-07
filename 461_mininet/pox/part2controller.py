@@ -29,14 +29,15 @@ class Firewall (object):
     msg.match.nw_proto= 1
     msg.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
     self.connection.send(msg)
+    
     #arp
     msg1 = of.ofp_flow_mod()
     msg1.priority=1
     msg1.match.dl_type = 0x806
     msg1.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
     self.connection.send(msg1)
-    #none
 
+    #none
     msg2 = of.ofp_flow_mod()
     msg2.priority=0
     self.connection.send(msg2)
