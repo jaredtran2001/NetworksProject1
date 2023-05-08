@@ -46,9 +46,19 @@ class Part3Controller (object):
       print ("UNKNOWN SWITCH")
       exit(1)
 
+  def generic_rules(self, dest, port):
+    # pass
+    msg = of.ofp_flow_mod()
+    msg.priority = 4
+    msg.match.dl_type = 0x800
+    msg.match.nw_dest = dest
+    msg.actions.append(of.ofp_action_output(port = port))
+    self.connection.send(msg)
+    
+
   def s1_setup(self):
     #put switch 1 rules here
-    pass
+    # pass
     flood = of.ofp_flow_mod()
     flood.priority=2
     # msg.match.dl_type = 0x800
@@ -62,7 +72,7 @@ class Part3Controller (object):
 
   def s2_setup(self):
     #put switch 2 rules here
-    pass
+    # pass
     # self.s1_setup()
     flood = of.ofp_flow_mod()
     flood.priority=2
@@ -75,7 +85,7 @@ class Part3Controller (object):
 
   def s3_setup(self):
     #put switch 3 rules here
-    pass
+    # pass
     # self.s1_setup()
     flood = of.ofp_flow_mod()
     flood.priority=2
@@ -88,7 +98,7 @@ class Part3Controller (object):
 
   def cores21_setup(self):
     #put core switch rules here
-    pass
+    # pass
     # blocks IPV4 from hnotrust to h10
     block_hnotrust_s1 = of.ofp_flow_mod()
     block_hnotrust_s1.priority = 7
@@ -105,9 +115,23 @@ class Part3Controller (object):
     block_hnotrust.match.nw.proto = 1
     self.connection.send(block_hnotrust)
 
+    #setup for 10
+    self.generic_rules(IPS["h10"][0], 1) # might used IPS["h10"][1]
+
+    #setup for 20
+    self.generic_rules(IPS["h20"][0], 2)
+
+    #setup for 30
+    self.generic_rules(IPS["h30"][0], 3)
+
+    #setup for server1
+    self.generic_rules(IPS["serv1"][0], 4)
+
+
+
   def dcs31_setup(self):
     #put datacenter switch rules here
-    pass
+    self.s1_setup()
 
   #used in part 4 to handle individual ARP packets
   #not needed for part 3 (USE RULES!)
