@@ -131,6 +131,10 @@ class Part3Controller (object):
     flood.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
     self.connection.send(flood)
 
+    drop = of.ofp_flow_mod()
+    drop.priority = 0
+    self.connection.send(drop)
+
   def dcs31_setup(self):
     #put datacenter switch rules here
     self.s1_setup()
