@@ -51,10 +51,9 @@ class Part3Controller (object):
     msg = of.ofp_flow_mod()
     msg.priority = 4
     msg.match.dl_type = 0x800
-    msg.match.nw_dest = dest
+    msg.match.nw_dst = dest
     msg.actions.append(of.ofp_action_output(port = port))
     self.connection.send(msg)
-    
 
   def s1_setup(self):
     #put switch 1 rules here
@@ -99,20 +98,20 @@ class Part3Controller (object):
   def cores21_setup(self):
     #put core switch rules here
     # pass
-    # blocks IPV4 from hnotrust to h10
+    #blocks IPV4 from hnotrust to h10
     block_hnotrust_s1 = of.ofp_flow_mod()
     block_hnotrust_s1.priority = 7
-    block_hnotrust_s1.match.nw.src = IPS["hnotrust"][0]
-    block_hnotrust_s1.match.nw.dst = IPS["h10"][0]
+    block_hnotrust_s1.match.nw_src = IPS["hnotrust"][0]
+    block_hnotrust_s1.match.nw_dst = IPS["serv1"][0]
     block_hnotrust_s1.match.dl_type = 0x800
     self.connection.send(block_hnotrust_s1)
 
     #blocks ICMP to all
     block_hnotrust = of.ofp_flow_mod()
     block_hnotrust.priority = 6
-    block_hnotrust.match.nw.src = IPS["hnotrust"][0]
+    block_hnotrust.match.nw_src = IPS["hnotrust"][0]
     block_hnotrust.match.dl_type = 0x800
-    block_hnotrust.match.nw.proto = 1
+    block_hnotrust.match.nw_proto = 1
     self.connection.send(block_hnotrust)
 
     #setup for 10
@@ -127,7 +126,10 @@ class Part3Controller (object):
     #setup for server1
     self.generic_rules(IPS["serv1"][0], 4)
 
-
+    flood = of.ofp_flow_mod()
+    flood.priority=2
+    flood.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+    self.connection.send(flood)
 
   def dcs31_setup(self):
     #put datacenter switch rules here
