@@ -184,7 +184,7 @@ def p1_stage_d(recv_buf, sock, tcp_port) -> int:
 
 def create_tcp_socket(addr, port) -> socket.socket:
     """Creates TCP socket and gets addr info."""
-    dns_resolved_addr = socket.gethostbyname('attu2.cs.washington.edu')
+    dns_resolved_addr = socket.gethostbyname(SERVER_ADDRESS)
     socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     socket_tcp.connect((addr, port))
     return socket_tcp
@@ -192,7 +192,7 @@ def create_tcp_socket(addr, port) -> socket.socket:
 
 def create_udp_socket() -> socket.socket:
     """"Creates UDP socket and gets addr info."""
-    dns_resolved_addr = socket.gethostbyname('attu2.cs.washington.edu')
+    dns_resolved_addr = socket.gethostbyname(SERVER_ADDRESS)
     socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # socket_udp.connect((dns_resolved_addr, PORT))
     return socket_udp
