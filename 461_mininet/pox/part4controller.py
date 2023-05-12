@@ -31,6 +31,8 @@ class Part4Controller (object):
     # send it messages!
     self.connection = connection
 
+    self.arpTable = {}
+
     # This binds our PacketIn event listener
     connection.addListeners(self)
     #use the dpid to figure out what switch is being created
@@ -53,10 +55,9 @@ class Part4Controller (object):
     msg = of.ofp_flow_mod()
     msg.priority = 4
     msg.match.dl_type = 0x800
-    msg.match.nw_dest = dest
+    msg.match.nw_dst = dest
     msg.actions.append(of.ofp_action_output(port = port))
     self.connection.send(msg)
-    
 
   def s1_setup(self):
     #put switch 1 rules here
@@ -101,11 +102,11 @@ class Part4Controller (object):
   def cores21_setup(self):
     #put core switch rules here
     # pass
-    # blocks IPV4 from hnotrust to h10
+    #blocks IPV4 from hnotrust to h10
     block_hnotrust_s1 = of.ofp_flow_mod()
     block_hnotrust_s1.priority = 7
     block_hnotrust_s1.match.nw_src = IPS["hnotrust"][0]
-    block_hnotrust_s1.match.nw_dst = IPS["h10"][0]
+    block_hnotrust_s1.match.nw_dst = IPS["serv1"][0]
     block_hnotrust_s1.match.dl_type = 0x800
     self.connection.send(block_hnotrust_s1)
 
@@ -117,19 +118,26 @@ class Part4Controller (object):
     block_hnotrust.match.nw_proto = 1
     self.connection.send(block_hnotrust)
 
-    #setup for 10
-    self.generic_rules(IPS["h10"][1], 1) # might used IPS["h10"][1]
+    # #setup for 10
+    # self.generic_rules(IPS["h10"][0], 1) # might used IPS["h10"][1]
 
-    #setup for 20
-    self.generic_rules(IPS["h20"][1], 2)
+    # #setup for 20
+    # self.generic_rules(IPS["h20"][0], 2)
 
-    #setup for 30
-    self.generic_rules(IPS["h30"][1], 3)
+    # #setup for 30
+    # self.generic_rules(IPS["h30"][0], 3)
 
-    #setup for server1
-    self.generic_rules(IPS["serv1"][1], 4)
+    # #setup for server1
+    # self.generic_rules(IPS["serv1"][0], 4)
 
+    # flood = of.ofp_flow_mod()
+    # flood.priority=2
+    # flood.actions.append(of.ofp_action_output(port=of.OFPP_FLOOD))
+    # self.connection.send(flood)
 
+    # drop = of.ofp_flow_mod()
+    # drop.priority = 0
+    # self.connection.send(drop)
 
   def dcs31_setup(self):
     #put datacenter switch rules here
@@ -157,9 +165,27 @@ class Part4Controller (object):
       return
 
     packet_in = event.ofp # The actual ofp_packet_in message.
-    print ("Unhandled packet from " + str(self.connection.dpid) + ":" + packet.dump())
+    # print ("Unhandled packet from " + str(self.connection.dpid) + ":" + packet.dump())
 
     if packet.type == packet.ARP_TYPE and packet.payload.opcode == arp.REQUEST:
+      # switch not in arpTable, create new and empty table
+      if self.connection.dpid not in self.arpTable:
+        self.arpTable[self.connection.dpid] = {}
+
+      # install ofp_flow_mod rule if new
+      if packet.payload.protosrc not in self.arpTable[self.connection.dpid]:
+        msg = of.ofp_flow_mod()
+        msg.priority = 1
+        msg.match.dl_type = 0x800
+        msg.match.nw_dst = packet.payload.protosrc
+        msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src))
+        msg.actions.append(of.ofp_action_output(port = event.port))
+        self.connection.send(msg)
+
+      # learn or update port/mac info in arpTable
+      self.arpTable[self.connection.dpid][packet.payload.protosrc] = (event.port, packet.src)
+
+      # arp reply
       arp_reply = arp()
       arp_reply.hwsrc = self.connection.eth_addr
       arp_reply.hwdst = packet.src
@@ -172,14 +198,6 @@ class Part4Controller (object):
       ether.dst = packet.src
       ether.src = self.connection.eth_addr
       ether.payload = arp_reply
-
-      msg = of.ofp_flow_mod()
-      msg.priority = 1
-      msg.match.dl_type = 0x800
-      msg.match.nw_dst = packet.payload.protosrc
-      msg.actions.append(of.ofp_action_dl_addr.set_dst(packet.src))
-      msg.actions.append(of.ofp_action_output(port = event.port))
-      self.connection.send(msg)
 
       self.resend_packet(ether, event.port)
 
