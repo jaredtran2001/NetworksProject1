@@ -123,7 +123,7 @@ def fetch_webpage(net):
     fetch_times = []
     while True:
         # do the measurement (say) 3 times.
-        proc = h2.popen("curl -o /dev/null -s -w %%{time_total} %s/index.html" % (h1.IP()), shell = True, stdout = PIPE)
+        proc = h2.popen("curl -o /dev/null -s -w %%{time_total} %s" % (h1.IP()), shell = True, stdout = PIPE)
         out_time = proc.stdout.read()
         fetch_times.append(float(out_time))
         sleep(5)
